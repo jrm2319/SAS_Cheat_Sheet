@@ -105,3 +105,31 @@ proc mixed data=dental method=ml;
   model distance = age gender gender*age/s;
   random int age/type=un subject=id g;
 run;
+
+*** Calculate the crude OR and RR**;
+**u62250266 > Lab I Code**; 
+proc freq data=CVD order=data;
+	table FAMHX*CVD / chisq relrisk; *RELRISK requests the OR and RR and their 95% CI's. You want
+									  RELRISK Column 1 ("Yes"). CHISQ provides a quick measure of
+									  association;
+	format FAMHX yn. CVD yn.;
+run;
+
+proc sort data=CVD;
+	by descending STATIN descending OBESE; *Get the other variables in the correct order;
+run;
+
+proc freq data=CVD order=data;
+	table STATIN*CVD / chisq relrisk;
+	format STATIN yn. CVD yn.;
+run;
+
+proc freq data=CVD order=data;
+	table OBESE*CVD / chisq relrisk;
+	format OBESE yn. CVD yn.;
+run;
+
+/* Create a temporary data set from the permanent  chs03 data in our library.*/
+**u62250266 > Lab 2 Code**; 
+data chs03;
+set epi3.chs03;
