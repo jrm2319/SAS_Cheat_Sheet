@@ -133,3 +133,256 @@ run;
 **u62250266 > Lab 2 Code**; 
 data chs03;
 set epi3.chs03;
+
+/*Macros*/
+	/*Print and sort data to understand it*/
+		PROC PRINT DATA=sashelp.class;
+		RUN;
+		
+		PROC SORT DATA=sashelp.class OUT=class;
+		BY sex;
+		RUN;
+
+	/*To get the female and male values */
+		DATA Mclass;
+		SET sashelp.class;
+		WHERE sex = 'F';
+		RUN; 
+		
+		DATA Mclass;
+		SET sashelp.class;
+		WHERE sex = 'M';
+		RUN; 
+	/*Creating the Macro variable*/;
+		/*%LET macro_name = value*/;
+		%LET x = sashelp.class; *since we are using 'sashelp.class' a lot, we cna create a macro so that we don't have to write it as often*/
+		
+	/*Using Macros*/;
+		PROC PRINT data=&x; /*to call on macros, you use '&macro_name'*/
+		RUN;
+		
+		PROC SORT DATA=&x OUT=class;
+		BY sex;
+		RUN;
+		
+		DATA Mclass;
+		SET &x;
+		WHERE sex = 'F';
+		RUN; 
+		
+		DATA Mclass;
+		SET &x;
+		WHERE sex = 'M';
+		RUN; 
+		
+	/*Creating another macro and macro variable*/
+		/*These are the datasets we want, but there has to be an easier way to do this.*/
+		PROC PRINT DATA=sashelp.class;
+		RUN;
+		
+		PROC PRINT DATA=sashelp.air; 
+		RUN; 
+		
+		PROC PRINT DATA=sashelp.cars;
+		RUN;
+		
+		PROC PRINT DATA=sashelp.shoes;
+		RUN; 
+		
+		/*Create a macro to make this easier*/
+		%macro print; /*the name here is 'print'*/
+		PROC PRINT DATA=sashelp.class;
+		RUN;
+		%mend; 
+		
+		/*Call the macro*/
+		%print;
+		
+		/*Using key word parameters*/
+			/*Above, the only thing that is changing is the parameter (in this case the dataset you want to pull from sashelp), 
+			therefore there is an easier way to do this using macros with a parameter.*/
+		%macro print(dname=); /*'dname' is the name given to the parameter*/
+		PROC PRINT DATA=&dname; /*here we are linking the parameter using an &*/
+		RUN;
+		%mend; 
+		
+		%print(dname=sashelp.class);
+		%print(dname=sashelp.cars);
+		%print(dname=sashelp.shoes);
+			/*Above is example of KEYWORD PARAMETER*/
+
+		/*Another example of how to do this*/
+		%macro print(dname); 
+		PROC PRINT DATA=&dname; 
+		RUN;
+		%mend; 
+		
+		%print(sashelp.class);
+		%print(sashelp.cars);
+		%print(sashelp.shoes);
+			/*Above is example of POSITIONAL PARAMETER*/
+		
+	/*Macro programming for subsetting data*/
+		/*This is what we want*/
+		DATA class1;
+		SET sashelp.class;
+		WHERE sex = 'F';
+		RUN; 
+		
+		/*Let's assign a Macro to this*/
+		%macro sub(d=,r=,var=,val=,);
+		DATA &d;
+		SET &r;
+		WHERE &var = &val;
+		RUN; 
+		%mend;	
+		
+		/*Let's use the macro we just created*/
+		%sub(d=class2, r=sashelp.class, var=sex, val='M');
+		%sub(d=class3, r=sashelp.class, var=sex, val='F');
+		
+	/*Macro programming for creating libraries*/
+		/*Traditional SAS Code*/
+			LIBNAME lib '/home/u63745106/sasuser.v94';
+			RUN;
+		/*Assign Macro programming for library creation*/
+			 /*in positional parameter: (Parameter1, Parameter2,...
+				in keyword parameter: (Parameter1=Value1, Parameter2=Value2,...)*/
+			%macro dv(name=,path=);
+			LIBNAME &name &path;
+			RUN;
+			%mend;
+			
+			%dv (name=lib2, path='/home/u63745106/sasuser.v94');
+			
+	/*Macro porgrammming for frequency procedure*/
+		/*Traditional SAS code*/
+			PROC FREQ DATA=sashelp.class;
+			TABLE age;
+			RUN; 
+			
+			PROC SORT DATA=sashelp.class OUT=class7; 
+			BY sex;
+			RUN; 
+			
+			PROC FREQ DATA=class7;
+			TABLE age; 
+			BY sex; 
+			RUN; 
+		/*Macros code*/
+			%macro sexfreq(dat=, table=, by=);
+			PROC FREQ DATA=&dat;
+			TABLE &table; 
+			BY &by; 
+			RUN; 
+			%mend;
+			
+			%sexfreq(dat=class7, table=age, by=sex);
+			
+			%macro sexsort(dat=, by=); 
+			PROC SORT DATA=&dat;
+			BY &by;
+			RUN;
+			%mend;
+			
+			%sexsort(dat=class7, by=sex);
+			
+	/*Macro porgrammming for mean procedure*/;
+		/*Traditional SAS code*/;
+			%sexsort(dat=class7, by=sex);
+			PROC SORT DATA=sashelp.class OUT=class1223; BY SEX; RUN; 
+			
+			PROC MEANS DATA=class1223;
+			BY SEX;
+			VAR height weight;
+			RUN;
+		/*Macros code*/
+			/*This allows us to do the sorting, frequency, and mean all in one go*/
+			%macro sexfreq2 (R= ,OP=, BYVAR=, TVAR=, AVAR1=, AVAR2=);
+			PROC SORT DATA=&R OUT=&OP; BY &BYVAR; RUN;
+			
+			PROC FREQ DATA=&OP;
+			TABLE &TVAR;
+			BY &BYVAR; 
+			RUN;
+			
+			PROC MEANS DATA=&OP;
+			BY &BYVAR;
+			VAR &AVAR1 &AVAR2; 
+			RUN; 
+			
+			%mend;
+			
+			%sexfreq2 (R=sashelp.class,OP=class, BYVAR=sex, TVAR=age, AVAR1=height, AVAR2=weight);
+
+	/*SAS Macros-Conditional and iterative statement*/
+		/*Using conditional statements and lopps using macro statements such as %IF, %THEN, %ELSE and 
+		%DO, %END. These macro statements should alwasys be called inside the macro.*/
+		
+		/*Conditional processing: used when we want to execute a piece of code based on the output of 
+		single or multiple conditions.*/
+		
+		%macro sexfreq2 (C=, R= ,OP=, BYVAR=, TVAR=, AVAR1=, AVAR2=);
+		
+		%IF &C=S %THEN %DO;
+			PROC SORT DATA=&R OUT=&OP; BY &BYVAR; RUN;
+		%END; /*the PROC SORT will only be completed if the IF/THEN statement is satified*/
+			
+		%ELSE %IF &C=F %THEN %DO;
+			PROC FREQ DATA=&OP;
+			TABLE &TVAR;
+			BY &BYVAR; 
+			RUN;
+		%END;
+			
+		%ELSE %IF &C=M %THEN %DO;
+			PROC MEANS DATA=&OP;
+			BY &BYVAR;
+			VAR &AVAR1 &AVAR2; 
+			RUN; 
+		%END;
+
+		%mend;
+			
+		%sexfreq2 (C=M, R=sashelp.class,OP=class, BYVAR=sex, TVAR=age, AVAR1=height, AVAR2=weight);
+					/*Here, we used C+M tf the PROC MEAN function will be printed. It will all be executed.*/
+					
+	/*SAS Macro Functions*/
+		/*
+		%PUT = writes text or macro variable infomration to the SAS log. To display the automatically created macro variable.
+		%PUT_AUTOMATIC_ = to display macro variables defined by a user
+		%PUT_USER_ = to display global macro variable
+		%PUT_GLOBAL_ : to display loacl macro variables 
+		%PUT_LOCAL_ = to display value assigned to macro variables
+		*/		
+		
+		%LET X=20;
+		%LET y=5;
+		%LET z=&x*&y;
+		
+		%PUT &z; /*this will NOT run the calculation! It will just run exactly what you put in as the Z value.*/
+		
+		%LET X=20;
+		%LET y=5;
+		%LET z=%eval(&x*&y); /* %eval can ONLY be used on whole numbers, decimals do not work.*/
+		
+		%PUT &z; /*Now the calculation is running!*/
+		
+		%LET X=20.34;
+		%LET y=5.21;
+		%LET z=%sysevalf(&x*&y); /* %sysevalf can be used with decimal values*/
+		
+		%PUT &z; /*Now the calculation is running!*/
+		
+		%LET x=10
+		%LET y= %STR (R &x ; Chandana); /* %STR removes the meaning of the special characters, for example the ';' in this case*/
+
+		%PUT &y; 
+		
+		
+		
+		
+		
+		
+		
+		
