@@ -358,14 +358,12 @@ set epi3.chs03;
 		
 		%LET X=20;
 		%LET y=5;
-		%LET z=&x*&y;
+		%LET z=&x*&y; /*here we want to do a computation, but...*/
 		
-		%PUT &z; /*this will NOT run the calculation! It will just run exactly what you put in as the Z value.*/
-		
-		%LET X=20;
-		%LET y=5;
-		%LET z=%eval(&x*&y); /* %eval can ONLY be used on whole numbers, decimals do not work.*/
-		
+		%PUT &z; /*this will NOT run the calculation! It will just run exactly what you put in as the Z value. So 
+				output is '20*5' */
+				
+		%LET z=%eval(&x*&y); /* %eval allows for computations to be done. BUT This can ONLY be used on whole numbers, decimals do not work.*/
 		%PUT &z; /*Now the calculation is running!*/
 		
 		%LET X=20.34;
@@ -374,10 +372,76 @@ set epi3.chs03;
 		
 		%PUT &z; /*Now the calculation is running!*/
 		
-		%LET x=10
-		%LET y= %STR (R &x ; Chandana); /* %STR removes the meaning of the special characters, for example the ';' in this case*/
+		/*Below, we are aiming to get a list that replaces the &x with it's assigned value (x=10).*/
+		%LET x=10;
+		%LET y=R &x; Chandana; /*however this won't run becuase the ; tells SAS to stop runnning. */
+		%LET y = %STR(R &x; Chandana); /*TF, we used %STR here instead. This removes the normal menaing of the special
+										characters/logical characters, but it does not mask/remove the &. */
+		%PUT &y;
+		
+		/*Let's say we want to now MASK the normal meaning of the & sign in the macros function.*/
+		%LET x=10;
+		%LET y = %NRSTR(R &x; Chandana); /*Here we use %NRSTR, this removes the meaning of the special characters, 
+										including the menaing of the special characters for macros.*/
+		%PUT &y;
 
-		%PUT &y; 
+		/*Now, we want to make everything uppercase letters.*/
+		%LET r=chandana;
+		%LET xy=%UPCASE(&r); /*%UPCASE uppercases characters*/
+		%PUT &xy;
+		
+		/*Scanning for a value and printing that value ONLY*/
+		%LET r=chandana roy rasanadugu;
+		%LET xy=%SCAN(&r, 2); /*This gives you the second word that starts with the 'r' letter. Using the %scan function macro here. */
+		%PUT &xy; 
+		
+		/*Length function--to know the legnth of */
+		%LET r=chandana roy rasanadugu;
+		%LET xy=%LENGTH(&r); /*Gives you the total length of the macro that is assigned to it.*/
+		%PUT &xy; 
+		
+		/*Counting the number of words*/
+		%LET r=chandana roy rasanadugu;
+		%LET xy=%SYSFUNC(Countw(&r)); /* %SYSFUNC executes SAS functions or user written functions, countw counts the number of words in the macros function*/
+		%PUT &xy; 	
+		
+		/*Printing the automatic variables*/
+		%PUT _automatic_; /*these are all the macro vairables created when SAS is started*/
+		%PUT _user_; /*these are all the user created macro variables*/
+		%PUT _global_; /*global macro variables present in the system*/
+		%PUT _local_; /*local macro variables*/
+		
+		/*Practical application with the functions above*/
+		DATA class;
+		SET sashelp.class;
+		RUN;
+		
+		DATA cars;
+		SET sashelp.cars;
+		RUN;
+		
+		DATA air;
+		SET sashelp.air;
+		RUN;
+		
+			/*By using a macros function, we can print all of these at the same time instead of using separate code chunks.*/
+			%macro print(dname=)
+			PROC PRINT DATA= &dname; 
+			RUN; 
+			%mend;
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		
 		
 		
